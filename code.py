@@ -1,4 +1,5 @@
 import time
+import terminalio
 from adafruit_magtag.magtag import MagTag
 from wikiquote import get_qotd
 
@@ -10,11 +11,11 @@ magtag = MagTag()
 
 # main text, index 0
 magtag.add_text(
-    text_font="Arial-12.bdf",
+#    text_font="Arial-12.bdf",
+    text_font=terminalioFONT,
     text_position=(8, 8),
     line_spacing=1.0,
-    text_wrap=40,
-    text_maxlen=200,
+    text_wrap=45,
     text_anchor_point=(0, 0),
 )
 

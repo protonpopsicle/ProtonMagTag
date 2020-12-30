@@ -1,39 +1,46 @@
 DATA_URL = "https://en.wikiquote.org/w/api.php?format=json&action=parse&prop=text&page=Main_Page"
 
-def is_text(chunk, prev=None):
-        if chunk == b'n' and prev == b'\\':
-            return False
-        if chunk in (b'\\',):
-            return False
-        return True
-
 def get_qotd(requests):
     resp = requests.get(DATA_URL)
     print("Wikiquote: Got response. parsing...")
 
+    prev = b''
     in_xml = False
+    in_escape_seq = False
     in_quote = False
     quote_buf = b''
     read_buf = [b'']*16
-    prev = b''
+    it = resp.iter_content(chunk_size=1)
 
-    for chunk in resp.iter_content(chunk_size=1):
-        if chunk == b'<':
+    for char in it:
+        if char == b'<':
             in_xml = True
-        if in_xml and chunk == b'>':
+        if in_xml and char == b'>':
             in_xml = False
         elif not in_xml:
-            if prev == b';' and b''.join(read_buf) == b'of the day&#160;':
+            # skip some stuff
+            if char in b'\\':
+                prev = char
+                continue
+            if prev == b'\\':
+                if char == b'n':
+                    prev = char
+                    continue
+                if char == b'u':
+                    for x in range(4):
+                       prev = next(it)
+                    continue
+
+            if not in_quote and b''.join(read_buf) == b'of the day&#160;':
                 in_quote = True
             elif in_quote and quote_buf[-2:] == b' ~':
                 in_quote = False
                 break
-            if is_text(chunk, prev):
-                if in_quote:
-                    quote_buf += chunk
-                else:
-                    del read_buf[0]
-                    read_buf.append(chunk)
-        prev = chunk
+            if in_quote:
+                quote_buf += char
+            else:
+                del read_buf[0]
+                read_buf.append(char)
+        prev = char
 
     return quote_buf.decode('utf-8')
